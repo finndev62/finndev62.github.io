@@ -31,7 +31,7 @@
                 const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
                 const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
                 
-                // 1. Repoya indirdiğin yerel worker scriptini çağırıyoruz
+                // Repondaki yerel worker'ı çağırıyoruz
                 const worker = new Worker('./duckdb-browser-eh.worker.js');
                 
                 const logger = new duckdb.ConsoleLogger();
@@ -40,26 +40,19 @@
                 
                 conn = await db.connect();
                 
-                // 2. KESİN ÇÖZÜM: DuckDB'ye JSON extension'ını otomatik yüklemesini söylüyoruz
-                await conn.query(`
-                    SET autoinstall_known_extensions=1;
-                    SET autoload_known_extensions=1;
-                `);
-                
-                // 3. updates.json için tam dosya yolunu çıkart
+                // updates.csv için tam dosya yolunu çıkart
                 const currentDir = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-                const jsonPath = `${currentDir}/updates.json`;
+                const csvPath = `${currentDir}/updates.csv`;
                 
-                // 4. JSON verisini SQL tablosuna aktar
+                // KESİN ÇÖZÜM: Ek eklenti gerektirmeyen yerel CSV fonksiyonunu çalıştırıyoruz
                 await conn.query(`
                     CREATE TABLE updates AS 
-                    SELECT * FROM READ_JSON_AUTO('${jsonPath}')
+                    SELECT * FROM read_csv_auto('${csvPath}')
                 `);
 
-                status.style.display = 'none'; // Yükleniyor yazısını gizle
-                fetchData(); // İlk sorguyu çalıştır ve verileri bas
+                status.style.display = 'none'; 
+                fetchData(); 
             } catch (err) {
-                // Herhangi bir aksilik olursa panic logunu ekrana dök
                 status.className = 'error-box';
                 status.innerHTML = `<strong>[DuckDB Panic]</strong>\nMessage: ${err.message}\n\nStack Trace:\n${err.stack || ''}`;
             }
@@ -70,7 +63,6 @@
             const typeFilter = document.getElementById('typeFilter').value;
             const searchTerm = document.getElementById('search').value.toLowerCase().trim();
             
-            // Dinamik SQL Sorgusu
             let query = `SELECT * FROM updates WHERE 1=1`;
             if (typeFilter !== 'All') {
                 query += ` AND type = '${typeFilter}'`;
@@ -114,7 +106,6 @@
             });
         }
 
-        // Event listener bağlantıları
         document.getElementById('typeFilter').addEventListener('change', fetchData);
         document.getElementById('search').addEventListener('input', fetchData);
         
@@ -137,8 +128,7 @@
             </select>
         </div>
 
-        <div id="updates-list">
-            </div>
+        <div id="updates-list"></div>
     </div>
 </body>
     </html>
