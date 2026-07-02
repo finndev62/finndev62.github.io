@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ValiantCore - Development Logs</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: #e0e0e0; padding: 20px; margin: 0; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #00ffcc; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .controls { margin-bottom: 20px; display: flex; gap: 10px; }
+        select, input { background: #222; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 4px; }
+        input { flex-grow: 1; }
+        .update-card { background: #1e1e1e; border-left: 4px solid #00ffcc; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+        .meta { font-size: 0.85em; color: #888; margin-bottom: 5px; }
+        .tag { background: #333; padding: 2px 6px; border-radius: 3px; color: #00ffcc; margin-right: 5px; }
+        .loading { color: #ffcc00; font-style: italic; }
+    </style>
+
+    <!-- Loading DuckDB WASM via ESM Modules -->
+    <script type="module">
+        import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/+esm';
+
+        let conn;
+
+        // Initialize the WebAssembly Database
+        async function init() {
+            const status = document.getElementById('status');
+            try {
+                const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+                const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+                const worker = new Worker(bundle.mainWorker);
+                const logger = new duckdb.ConsoleLogger();
+                const db = new duckdb.AsyncDuckDB(logger, worker);
+                await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+                
+                conn = await db.connect();
+                
+                // Fetch the static JSON file and ingest it into an in-memory SQL table
+                await conn.query(`
+                    CREATE TABLE updates AS 
+                    SELECT * FROM READ_JSON_AUTO('updates.json')
+                `);
+
+                status.style.display = 'none'; // Hide loading state
+                fetchData(); // Trigger initial data fetch
+            } catch (err) {
+                status.innerText = "Error initializing DuckDB WASM engine.";
+                console.error(err);
+            }
+        }
+
+        // Query the database dynamically based on filters
+        async function fetchData() {
+            const typeFilter = document.getElementById('typeFilter').value;
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            
+            // Raw SQL Query Construction
+            let query = `SELECT * FROM updates WHERE 1=1`;
+            
+            if (typeFilter !== 'All') {
+                query += ` AND type = '${typeFilter}'`;
+            }
+            if (searchTerm) {
+                query += ` AND (LOWER(description) LIKE '%${searchTerm}%' OR LOWER(component) LIKE '%${searchTerm}%')`;
+            }
+            
+            query += ` ORDER BY date DESC`;
+
+            const result = await conn.query(query);
+            const rows = result.toArray();
+            
+            renderUI(rows);
+        }
+
+        // Render SQL output into clean HTML components
+        function renderUI(rows) {
+            const list = document.getElementById('updates-list');
+            list.innerHTML = '';
+
+            if (rows.length === 0) {
+                list.innerHTML = '<p>No records found matching the criteria.</p>';
+                return;
+            }
+
+            rows.forEach(row => {
+                const obj = row.toJSON(); 
+                const card = document.createElement('div');
+                card.className = 'update-card';
+                card.innerHTML = `
+                    <div class="meta">
+                        <span>${obj.date}</span> | 
+                        <span class="tag">${obj.type}</span>
+                        <span class="tag" style="color:#ff00ff;">${obj.component}</span>
+                    </div>
+                    <div class="content">${obj.description}</div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        // Wire up input event listeners
+        document.getElementById('typeFilter').addEventListener('change', fetchData);
+        document.getElementById('search').addEventListener('input', fetchData);
+
+        // Run the engine when the DOM is fully loaded
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>ValiantCore Changelog Database</h1>
+        <p>A serverless, client-side SQL-powered registry tracking drivers and kernel features.</p>
+        
+        <div id="status" class="loading">Booting DuckDB WASM engine...</div>
+
+        <div class="controls">
+            <input type="text" id="search" placeholder="Search components or logs (e.g., RTL8111, Memory, Arch)...">
+            <select id="typeFilter">
+                <option value="All">All Types</option>
+                <option value="Driver">Drivers</option>
+                <option value="Feature">Features</option>
+            </select>
+        </div>
+
+        <div id="updates-list">
+            <!-- Data queried via DuckDB streams here -->
+        </div>
+    </div>
+</body>
+  </html>
