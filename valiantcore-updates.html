@@ -5,30 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ValiantCore - Development Logs</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: #e0e0e0; padding: 20px; margin: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #121212; color: #e0e0e0; padding: 20px; margin: 0; }
         .container { max-width: 800px; margin: 0 auto; }
-        h1 { color: #00ffcc; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        h1 { color: #00ffcc; border-bottom: 2px solid #333; padding-bottom: 10px; font-weight: 600; }
         .controls { margin-bottom: 20px; display: flex; gap: 10px; }
-        select, input { background: #222; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 4px; }
+        select, input { background: #222; color: #fff; border: 1px solid #444; padding: 10px; border-radius: 4px; font-size: 14px; }
         input { flex-grow: 1; }
-        .update-card { background: #1e1e1e; border-left: 4px solid #00ffcc; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
-        .meta { font-size: 0.85em; color: #888; margin-bottom: 5px; }
-        .tag { background: #333; padding: 2px 6px; border-radius: 3px; color: #00ffcc; margin-right: 5px; }
-        .loading { color: #ffcc00; font-style: italic; }
+        .update-card { background: #1e1e1e; border-left: 4px solid #00ffcc; padding: 15px; margin-bottom: 15px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .meta { font-size: 0.85em; color: #888; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .tag { background: #333; padding: 2px 8px; border-radius: 3px; color: #00ffcc; font-weight: bold; font-size: 0.8em; }
+        .component-tag { background: #2a1b40; padding: 2px 8px; border-radius: 3px; color: #ff00ff; font-weight: bold; font-size: 0.8em; }
+        .content { line-height: 1.5; color: #f0f0f0; }
+        .loading { color: #ffcc00; font-style: italic; padding: 15px; background: #1a1a00; border-radius: 4px; border: 1px solid #332200; }
+        .error-box { color: #ff3333; padding: 15px; background: #220000; border-radius: 4px; border: 1px solid #440000; font-family: monospace; white-space: pre-wrap; }
     </style>
 
-    <!-- Loading DuckDB WASM via ESM Modules -->
     <script type="module">
         import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/+esm';
 
         let conn;
 
-        // Initialize the WebAssembly Database
         async function init() {
             const status = document.getElementById('status');
             try {
+                // 1. En kararlı jsDelivr paket bundle yapısını seç
                 const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
                 const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+                
+                if (!bundle.mainWorker) {
+                    throw new Error("Failed to resolve DuckDB Web Worker bundle.");
+                }
+
+                // 2. Web Worker'ı başlat ve veritabanını instantiate et
                 const worker = new Worker(bundle.mainWorker);
                 const logger = new duckdb.ConsoleLogger();
                 const db = new duckdb.AsyncDuckDB(logger, worker);
@@ -36,50 +44,59 @@
                 
                 conn = await db.connect();
                 
-                // Fetch the static JSON file and ingest it into an in-memory SQL table
+                // 3. Tarayıcının çalışma dizinine göre updates.json için mutlak yol (absolute path) oluştur
+                const currentDir = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+                const jsonPath = `${currentDir}/updates.json`;
+                
+                // 4. JSON dosyasını SQL tablosuna aktar
                 await conn.query(`
                     CREATE TABLE updates AS 
-                    SELECT * FROM READ_JSON_AUTO('updates.json')
+                    SELECT * FROM READ_JSON_AUTO('${jsonPath}')
                 `);
 
-                status.style.display = 'none'; // Hide loading state
-                fetchData(); // Trigger initial data fetch
+                status.style.display = 'none'; // Başarılıysa yükleniyor kutusunu gizle
+                fetchData(); // İlk verileri getir
             } catch (err) {
-                status.innerText = "Error initializing DuckDB WASM engine.";
-                console.error(err);
+                // Herhangi bir çökme durumunda hatayı doğrudan ekrana yazdır
+                status.className = 'error-box';
+                status.innerHTML = `<strong>[DuckDB Panic]</strong>\nMessage: ${err.message}\n\nStack Trace:\n${err.stack || 'No stack trace available.'}`;
             }
         }
 
-        // Query the database dynamically based on filters
         async function fetchData() {
+            if (!conn) return;
+
             const typeFilter = document.getElementById('typeFilter').value;
-            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const searchTerm = document.getElementById('search').value.toLowerCase().trim();
             
-            // Raw SQL Query Construction
+            // Temel SQL Sorgusu
             let query = `SELECT * FROM updates WHERE 1=1`;
             
             if (typeFilter !== 'All') {
                 query += ` AND type = '${typeFilter}'`;
             }
             if (searchTerm) {
+                // Büyük/küçük harf duyarlılığını kaldırmak için LOWER kullanıyoruz
                 query += ` AND (LOWER(description) LIKE '%${searchTerm}%' OR LOWER(component) LIKE '%${searchTerm}%')`;
             }
             
             query += ` ORDER BY date DESC`;
 
-            const result = await conn.query(query);
-            const rows = result.toArray();
-            
-            renderUI(rows);
+            try {
+                const result = await conn.query(query);
+                const rows = result.toArray();
+                renderUI(rows);
+            } catch (queryErr) {
+                console.error("SQL Execution Error:", queryErr);
+            }
         }
 
-        // Render SQL output into clean HTML components
         function renderUI(rows) {
             const list = document.getElementById('updates-list');
             list.innerHTML = '';
 
             if (rows.length === 0) {
-                list.innerHTML = '<p>No records found matching the criteria.</p>';
+                list.innerHTML = '<p style="color: #888;">No records found matching the criteria.</p>';
                 return;
             }
 
@@ -89,9 +106,9 @@
                 card.className = 'update-card';
                 card.innerHTML = `
                     <div class="meta">
-                        <span>${obj.date}</span> | 
+                        <span>${obj.date}</span>
                         <span class="tag">${obj.type}</span>
-                        <span class="tag" style="color:#ff00ff;">${obj.component}</span>
+                        <span class="component-tag">${obj.component}</span>
                     </div>
                     <div class="content">${obj.description}</div>
                 `;
@@ -99,33 +116,32 @@
             });
         }
 
-        // Wire up input event listeners
+        // Event listener'ları güvenli bir şekilde bağla
         document.getElementById('typeFilter').addEventListener('change', fetchData);
         document.getElementById('search').addEventListener('input', fetchData);
-
-        // Run the engine when the DOM is fully loaded
+        
+        // DOM hazır olduğunda motoru ateşle
         window.addEventListener('DOMContentLoaded', init);
     </script>
 </head>
 <body>
     <div class="container">
-        <h1>ValiantCore Changelog Database</h1>
-        <p>A serverless, client-side SQL-powered registry tracking drivers and kernel features.</p>
+        <h1>ValiantCore Changelog Registry</h1>
+        <p style="color: #aaa; margin-bottom: 25px;">Serverless database tracking kernel feature updates and driver implementation logs.</p>
         
-        <div id="status" class="loading">Booting DuckDB WASM engine...</div>
+        <div id="status" class="loading">Booting client-side DuckDB WASM engine...</div>
 
         <div class="controls">
-            <input type="text" id="search" placeholder="Search components or logs (e.g., RTL8111, Memory, Arch)...">
+            <input type="text" id="search" placeholder="Filter by component or keyword (e.g., RTL8111, Memory, Paging)..." autocomplete="off">
             <select id="typeFilter">
-                <option value="All">All Types</option>
+                <option value="All">All Logs</option>
                 <option value="Driver">Drivers</option>
                 <option value="Feature">Features</option>
             </select>
         </div>
 
         <div id="updates-list">
-            <!-- Data queried via DuckDB streams here -->
-        </div>
+            </div>
     </div>
 </body>
-  </html>
+    </html>
