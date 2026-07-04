@@ -3,3 +3,4 @@ date,type,component,description
 2026-06-15,Feature,Arch,ValiantCore supports x86-i386 architectures.
 2026-05-10,Feature,Memory,Implemented core paging structures and virtual memory management subsystem.
 2026-07-03,Driver,Keyboard,The ValiantCore keyboard driver feature has arrived; `keyboard.c` is now in the repository.
+2026-07-04,Driver,Uart,The ValiantCore Aarch64 UART file is in the repository; the ValiantCore Aarch64 display is now available as well.
