@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C Tools & Utilities Registry</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #121212; color: #e0e0e0; padding: 20px; margin: 0; }
+        .container { max-width: 800px; margin: 0 auto; }
+        
+        /* Üst Bar Yapısı */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 5px; }
+        h1 { color: #00bcd4; margin: 0; font-weight: 600; font-size: 24px; }
+        .back-btn { background: #222; color: #00bcd4; border: 1px solid #00bcd4; padding: 8px 14px; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: bold; transition: all 0.2s ease; }
+        .back-btn:hover { background: #00bcd4; color: #121212; box-shadow: 0 0 8px rgba(0, 188, 212, 0.4); }
+
+        .sub-text { color: #aaa; margin-bottom: 35px; margin-top: 5px; font-size: 14px; }
+        
+        /* İndirme Kartı */
+        .download-card { background: #1e1e1e; border: 1px solid #333; border-left: 4px solid #00bcd4; padding: 20px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.4); margin-bottom: 25px; }
+        .file-info { display: flex; flex-direction: column; gap: 5px; }
+        .file-name { font-family: monospace; font-size: 18px; color: #fff; font-weight: bold; display: flex; align-items: center; gap: 10px; }
+        
+        .badge-latest { background: #00bcd4; color: #121212; padding: 2px 8px; border-radius: 3px; font-weight: bold; font-size: 0.75em; text-transform: uppercase; font-family: sans-serif; }
+        .badge-stable { background: #222; color: #888; border: 1px solid #444; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 0.7em; font-family: sans-serif; }
+        .file-meta { font-size: 0.85em; color: #888; }
+        
+        /* İndirme Butonu */
+        .download-btn { background: #00bcd4; color: #121212; border: none; padding: 12px 20px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 14px; transition: all 0.2s ease; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .download-btn:hover { background: #0097a7; box-shadow: 0 0 12px rgba(0, 188, 212, 0.5); transform: translateY(-1px); }
+        
+        /* İçerik Detay Listesi */
+        .details-section { margin-top: 30px; background: #1a1a1a; padding: 20px; border-radius: 4px; border: 1px solid #2d2d2d; }
+        h2 { color: #fff; font-size: 18px; margin-top: 0; margin-bottom: 15px; font-weight: 500; }
+        .details-list { margin: 0; padding-left: 20px; color: #ccc; font-size: 14px; line-height: 1.8; }
+        .details-list strong { color: #00bcd4; font-family: monospace; }
+        
+        /* Arşiv Tablosu */
+        .history-section { margin-top: 40px; }
+        .history-table { width: 100%; border-collapse: collapse; background: #1a1a1a; border-radius: 4px; overflow: hidden; }
+        .history-table th, .history-table td { padding: 12px; text-align: left; border-bottom: 1px solid #2d2d2d; font-size: 14px; }
+        .history-table th { background: #222; color: #aaa; font-weight: 600; }
+        .history-link { color: #00bcd4; text-decoration: none; }
+        .history-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-bar">
+            <h1>C Utilities Sandbox</h1>
+            <a href="index.html" class="back-btn">← Back to Portfolio</a>
+        </div>
+        
+        <div class="sub-text">A collection of custom C programs, advanced mathematical utilities, and document security analysis tools.</div>
+
+        <div class="download-card">
+            <div class="file-info">
+                <div class="file-name">
+                    c-tools.zip
+                    <span class="badge-latest">Latest</span>
+                </div>
+                <div class="file-meta">Format: ZIP Archive | Contains: Source Codes & PDF Document Security Modules</div>
+            </div>
+            <a href="archives/c-tools.zip" download class="download-btn">
+                <span>Download Bundle</span>
+            </a>
+        </div>
+
+        <div class="details-section">
+            <h2>What's Inside the Bundle?</h2>
+            <ul class="details-list">
+                <li><strong>calculator.c</strong> - A high-precision terminal calculator built from scratch in custom C code.</li>
+                <li><strong>antivirus.c / pdf_scanner</strong> - Dedicated C scripts engineered to parse and analyze PDF file structures for potential exploit vectors.</li>
+                <li><strong>Documentation</strong> - Step-by-step code implementation maps and structure notes.</li>
+            </ul>
+        </div>
+
+        <div class="history-section">
+            <h2>Previous Build Registry</h2>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Build Version</th>
+                        <th>Filename</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>v1.0.0-stable</td>
+                        <td><span style="font-family: monospace;">c-tools.zip</span></td>
+                        <td><span class="badge-stable">Stable</span></td>
+                        <td><a href="archives/c-tools.zip" download class="history-link">Download</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
